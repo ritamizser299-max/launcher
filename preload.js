@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Настройки
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),
+  saveSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value), // Alias for tutorial.js
 
   // Roblox
   launchRoblox: () => ipcRenderer.invoke('launch-roblox'),
