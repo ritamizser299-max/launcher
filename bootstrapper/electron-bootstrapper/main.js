@@ -25,9 +25,9 @@ const CONFIG = {
   appDownloadUrl: 'http://185.185.142.190/robbob/RobBob-App.zip',
   
   // Local paths
-  appFolder: 'RobBob',           // Folder name for app files
-  appExecutable: 'RobBob.exe',   // Main executable name
-  versionFile: 'version.txt'     // Local version file
+  appFolder: 'RobBob',                       // Folder name for app files
+  appExecutable: 'RobBob Launcher.exe',      // Main executable name (matches productName in package.json)
+  versionFile: 'version.txt'                 // Local version file
 };
 
 let mainWindow;
