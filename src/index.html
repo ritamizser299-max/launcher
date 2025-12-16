@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https:">
+  <title>RobBob Launcher</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-content">
+      <div class="loading-logo">ROBBOB</div>
+      <div class="loading-subtitle">Запуск лаунчера...</div>
+      <div class="loading-bar">
+        <div class="loading-progress" id="loadingProgress"></div>
+      </div>
+      <div class="loading-status" id="loadingStatus">Инициализация...</div>
+    </div>
+  </div>
+
+  <!-- Theme Transition Overlay -->
+  <div class="theme-transition-overlay" id="themeOverlay"></div>
+
+  <div class="launcher" id="launcher" style="display:none;">
+    <!-- Custom Titlebar -->
+    <div class="titlebar">
+      <div class="logo">
+        <div class="logo-icon"></div>
+        <span class="logo-text">ROBBOB</span>
+      </div>
+      <div class="spacer"></div>
+      <div class="win-controls">
+        <button id="minBtn" title="Свернуть">─</button>
+        <button id="maxBtn" title="Развернуть">□</button>
+        <button id="closeBtn" class="close" title="Закрыть">✕</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="status-block">
+          <div class="status-dot" id="connectionDot"></div>
+          <div class="status-info">
+            <div class="label">Текущая задержка</div>
+            <div class="sub"><span id="pingLabel">48ms</span></div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active" data-page="page-main">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10"/>
+            </svg>
+            <span>Главная</span>
+          </button>
+
+          <button class="nav-item" data-page="page-news">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2"/>
+            </svg>
+            <span>Новости</span>
+          </button>
+
+          <div class="nav-category">Инструменты</div>
+
+          <button class="nav-item" data-page="page-accessories">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            <span>Примерка</span>
+          </button>
+
+          <button class="nav-item" data-page="page-servers">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="2" y="3" width="20" height="7" rx="1"/>
+              <rect x="2" y="14" width="20" height="7" rx="1"/>
+              <circle cx="6" cy="6.5" r="1"/>
+              <circle cx="6" cy="17.5" r="1"/>
+            </svg>
+            <span>Серверы</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="nav-item" data-page="page-settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+            <span>Настройки</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="content">
+        <div class="topbar">
+          <div id="userProfile" class="user-profile" style="display:none;"></div>
+          <button class="theme-toggle" id="themeToggle" title="Сменить тему">
+            <span class="icon">🌙</span>
+            <span>Тема</span>
+          </button>
+          <button class="btn ghost" id="openLogin">Войти</button>
+        </div>
+
+        <section class="pages">
+          <!-- Main Page -->
+          <div id="page-main" class="page page-main active">
+            <div class="main-content">
+              <div class="main-logo">ROBBOB</div>
+              <div class="main-subtitle">Оптимизация сетевого соединения для Roblox</div>
+              <button class="play-btn" id="playBtn">▶ ИГРАТЬ</button>
+            </div>
+          </div>
+
+          <!-- News Page -->
+          <div id="page-news" class="page">
+            <div class="page-inner">
+              <h2 style="margin:0 0 16px 0; color:var(--text);">Новости</h2>
+              <div id="newsContainer" class="news-container">
+                <!-- News cards will be loaded dynamically -->
+                <div class="news-loading">
+                  <div class="loading-spinner"></div>
+                  <span>Загрузка новостей...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accessories Page -->
+          <div id="page-accessories" class="page">
+            <div class="page-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div class="card" style="max-width:420px; text-align:center;">
+                <h3 style="margin-bottom:12px;">🎭 Catalog Avatar Creator</h3>
+                <p style="margin-bottom:16px;">Примерь любые аксессуары на своего аватара перед покупкой.</p>
+                <button class="btn primary" style="width:100%;" id="openCatalog">Открыть →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Servers Page -->
+          <div id="page-servers" class="page">
+            <div class="page-inner">
+              <h2 style="margin:0 0 16px 0; color:var(--text);">Статус серверов</h2>
+              <div class="server-item">
+                <div class="name">🇷🇺 Россия (Москва)</div>
+                <div class="status-ok">● OK — 48ms</div>
+              </div>
+              <div class="server-item">
+                <div class="name">🇩🇪 Европа (Франкфурт)</div>
+                <div class="status-ok">● OK — 72ms</div>
+              </div>
+              <div class="server-item">
+                <div class="name">🇺🇸 США (Нью-Йорк)</div>
+                <div class="status-ok">● OK — 120ms</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Page -->
+          <div id="page-settings" class="page">
+            <div class="page-inner">
+              <h2 style="margin:0 0 16px 0; color:var(--text);">Настройки</h2>
+              <div class="card">
+                <!-- Network Mode Toggle -->
+                  <div class="setting-row">
+                    <div class="setting-left">
+                      <div class="setting-label-row">
+                        <span class="setting-label">Сетевой режим</span>
+                        <span class="network-indicator" id="networkIndicator"></span>
+                      </div>
+                      <div class="setting-desc">Улучшенное сетевое соединение</div>
+                      <button class="details-link" id="networkDetailsBtn">подробнее</button>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="networkToggle" checked>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+  
+                  <!-- Network Mode Select -->
+                  <div class="setting-row" id="networkModeRow">
+                    <div>
+                      <div class="setting-label">Метод подключения</div>
+                      <div class="setting-desc">Если не работает - попробуйте другой вариант</div>
+                    </div>
+                    <select id="networkModeSelect">
+                      <option value="general">Вариант 1</option>
+                    </select>
+                  </div>
+
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label">Тема оформления</div>
+                    <div class="setting-desc">Выберите тёмную или светлую тему</div>
+                  </div>
+                  <select id="themeSelect">
+                    <option value="dark">Тёмная</option>
+                    <option value="light">Светлая</option>
+                  </select>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label">Сворачивать в трей</div>
+                    <div class="setting-desc">При закрытии сворачивать в системный трей</div>
+                  </div>
+                  <select id="minimizeToTray">
+                    <option value="true">Включено</option>
+                    <option value="false">Выключено</option>
+                  </select>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label">Обучение</div>
+                    <div class="setting-desc">Показать интерактивное обучение лаунчером</div>
+                  </div>
+                  <button class="btn ghost" id="tutorialRestart">Показать</button>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label">Версия</div>
+                    <div class="setting-desc">RobBob Launcher v1.0.0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-bar">
+      <div class="footer-status">
+        <div class="dot" id="footerDot"></div>
+        <span id="footerStatus">Сетевой статус: стабильный</span>
+      </div>
+      <button class="play-btn-small" id="playBtnFooter">▶ ИГРАТЬ</button>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal" id="loginModal">
+    <div class="sheet">
+      <h2>Вход в аккаунт</h2>
+      <p>Введите никнейм Roblox для быстрого переключения.</p>
+      <input type="text" id="nickInput" placeholder="Ваш никнейм Roblox">
+      <div class="actions">
+        <button class="btn ghost" id="loginCancel">Отмена</button>
+        <button class="btn primary" id="loginConfirm">Войти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div class="modal" id="profileModal">
+    <div class="sheet profile-sheet">
+      <div class="profile-modal-content">
+        <div class="profile-avatar-large" id="profileAvatarLarge"></div>
+        <div class="profile-info">
+          <h2 id="profileDisplayName">Игрок</h2>
+          <p class="profile-username" id="profileUsername">@username</p>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span class="stat-label">Регистрация</span>
+              <span class="stat-value" id="profileCreated">-</span>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn primary" id="openRobloxProfile">Открыть профиль Roblox</button>
+            <button class="btn ghost" id="profileLogout">Выйти</button>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="profileModalClose">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Network Mode Info Modal -->
+  <div class="modal" id="networkModal">
+    <div class="sheet network-info-sheet">
+      <h2>🛡️ Сетевой режим</h2>
+      <div class="network-info-content">
+        <p>Сетевой режим улучшает стабильность соединения с игровыми серверами и снижает сетевые задержки.</p>
+
+        <h3>Как это работает?</h3>
+        <p>Лаунчер применяет локальные настройки сетевого взаимодействия для повышения стабильности соединения и уменьшения задержек.</p>
+
+        <h3>Безопасно ли это?</h3>
+        <p>Да. Все изменения применяются локально на устройстве пользователя и не требуют передачи данных третьим лицам.</p>
+
+        <h3>Технология:</h3>
+        <p class="tech-link">Используются общедоступные методы настройки сетевого взаимодействия.</p>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="networkModalClose">Понятно</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telegram Verification Fullscreen Blocker -->
+  <div class="telegram-blocker" id="telegramBlocker" style="display: none;">
+    <div class="telegram-blocker-overlay"></div>
+    <div class="telegram-blocker-content">
+      <div class="telegram-blocker-icon">🔒</div>
+      <h1 class="telegram-blocker-title">Требуется подтверждение</h1>
+      <p class="telegram-blocker-subtitle">Для использования лаунчера необходимо подписаться на наш Telegram канал</p>
+      
+      <div class="telegram-blocker-card">
+        <div class="telegram-steps-modern">
+          <div class="step-modern">
+            <div class="step-icon">1</div>
+            <div class="step-content">
+              <div class="step-title">Подпишитесь на канал</div>
+              <a href="#" id="openTelegramChannel" class="telegram-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                </svg>
+                <span id="telegramChannelName">@channel</span>
+              </a>
+            </div>
+          </div>
+          
+          <div class="step-modern">
+            <div class="step-icon">2</div>
+            <div class="step-content">
+              <div class="step-title">Получите код верификации</div>
+              <a href="#" id="openTelegramBot" class="telegram-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                </svg>
+                <span id="telegramBotName">@bot</span>
+              </a>
+              <div class="step-note">Отправьте команду /verify</div>
+            </div>
+          </div>
+          
+          <div class="step-modern">
+            <div class="step-icon">3</div>
+            <div class="step-content">
+              <div class="step-title">Введите код</div>
+              <input type="text" id="telegramCode" class="telegram-input-modern" placeholder="Введите код верификации" autocomplete="off">
+              <div class="telegram-error-modern" id="telegramError"></div>
+            </div>
+          </div>
+        </div>
+        
+        <button class="btn-verify-modern" id="telegramVerify">
+          <span>Подтвердить подписку</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="telegram-blocker-footer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Это окно нельзя закрыть до подтверждения подписки</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="scripts/updater.js"></script>
+  <script src="scripts/loading.js"></script>
+  <script src="scripts/theme.js"></script>
+  <script src="scripts/navigation.js"></script>
+  <script src="scripts/modals.js"></script>
+  <script src="scripts/tutorial.js"></script>
+  <script src="scripts/telegram.js"></script>
+  <script src="scripts/bypass.js"></script>
+  <script src="scripts/slideshow.js"></script>
+  <script src="scripts/news.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

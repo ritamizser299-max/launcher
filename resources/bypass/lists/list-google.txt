@@ -1,0 +1,11 @@
+google.com
+www.google.com
+google.ru
+www.google.ru
+googleapis.com
+gstatic.com
+youtube.com
+www.youtube.com
+ytimg.com
+youtu.be
+googlevideo.com

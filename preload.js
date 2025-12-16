@@ -1,0 +1,70 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Безопасно экспортируем API в renderer процесс
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Настройки
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),
+
+  // Roblox
+  launchRoblox: () => ipcRenderer.invoke('launch-roblox'),
+  getRobloxProfile: (username) => ipcRenderer.invoke('get-roblox-profile', username),
+
+  // Сетевой режим
+  startBypass: (mode) => ipcRenderer.invoke('start-bypass', mode),
+  stopBypass: () => ipcRenderer.invoke('stop-bypass'),
+  getBypassStatus: () => ipcRenderer.invoke('get-bypass-status'),
+  getBypassModes: () => ipcRenderer.invoke('get-bypass-modes'),
+
+  // События от main процесса
+  onNetworkStatus: (callback) => {
+    ipcRenderer.on('network-status', (event, data) => callback(data));
+  },
+
+  // Telegram верификация
+  getTelegramStatus: () => ipcRenderer.invoke('get-telegram-status'),
+  telegramVerify: (code) => ipcRenderer.invoke('telegram-verify', code),
+  getTelegramLinks: () => ipcRenderer.invoke('get-telegram-links'),
+  telegramReset: () => ipcRenderer.invoke('telegram-reset'),
+  telegramRefresh: () => ipcRenderer.invoke('telegram-refresh'),
+  onShowTelegramModal: (callback) => {
+    ipcRenderer.on('show-telegram-modal', () => callback());
+  },
+  onTelegramAccessRevoked: (callback) => {
+    ipcRenderer.on('telegram-access-revoked', () => callback());
+  },
+
+  // Управление окном
+  minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  maximizeWindow: () => ipcRenderer.send('window-maximize'),
+  closeWindow: () => ipcRenderer.send('window-close'),
+
+  // Внешние ссылки (через IPC для безопасности)
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+
+  // Загрузка/обновление компонентов
+  checkBypassFiles: () => ipcRenderer.invoke('check-bypass-files'),
+  downloadBypassFiles: () => ipcRenderer.invoke('download-bypass-files'),
+  onDownloadProgress: (callback) => {
+    ipcRenderer.on('download-progress', (event, data) => callback(data));
+  },
+
+  // Self-update system
+  checkLauncherUpdate: () => ipcRenderer.invoke('check-launcher-update'),
+  downloadLauncherUpdate: (url) => ipcRenderer.invoke('download-launcher-update', url),
+  getLauncherVersion: () => ipcRenderer.invoke('get-launcher-version'),
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on('update-progress', (event, data) => callback(data));
+  },
+
+  // Provider auto-detection
+  detectProvider: () => ipcRenderer.invoke('detect-provider'),
+  getDetectedProvider: () => ipcRenderer.invoke('get-detected-provider'),
+  resetProviderDetection: () => ipcRenderer.invoke('reset-provider-detection'),
+  onProviderDetected: (callback) => {
+    ipcRenderer.on('provider-detected', (event, data) => callback(data));
+  },
+
+  // Платформа
+  platform: process.platform
+});
