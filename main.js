@@ -79,7 +79,12 @@ function restartAsAdmin() {
 }
 
 // Проверяем права администратора при запуске
-if (process.platform === 'win32' && !process.argv.includes('--no-admin-check')) {
+// Пропускаем проверку если:
+// 1. Запущено с флагом --elevated (уже запущено с правами через bootstrapper)
+// 2. Запущено с флагом --no-admin-check (для отладки)
+const isElevatedLaunch = process.argv.includes('--elevated');
+
+if (process.platform === 'win32' && !isElevatedLaunch && !process.argv.includes('--no-admin-check')) {
   // Проверка через создание тестового файла в системной папке
   const testPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'temp', 'admin_test_' + process.pid);
 
@@ -87,11 +92,14 @@ if (process.platform === 'win32' && !process.argv.includes('--no-admin-check')) 
     fs.writeFileSync(testPath, 'test');
     fs.unlinkSync(testPath);
     // Права есть, продолжаем
+    console.log('Running with administrator privileges');
   } catch (e) {
     // Нет прав администратора - перезапускаем
     console.log('Requesting administrator privileges...');
     restartAsAdmin();
   }
+} else if (isElevatedLaunch) {
+  console.log('Launched with --elevated flag, skipping admin check');
 }
 
 // СРАЗУ убиваем все существующие winws.exe при старте лаунчера
@@ -359,7 +367,7 @@ function startBypassDirect(bypassPath, mode) {
  */
 function startBypass(mode = null) {
   const bypassPath = getBypassPath();
-  const selectedMode = mode || store.get('bypassMode', 'ALT7');
+  const selectedMode = mode || store.get('bypassMode', 'general');
 
   console.log('=== Starting Network Mode ===');
   console.log('Path:', bypassPath);
@@ -552,10 +560,11 @@ ipcMain.handle('get-settings', () => {
   return {
     theme: store.get('theme', 'dark'),
     bypassEnabled: store.get('bypassEnabled', true),
-    bypassMode: store.get('bypassMode', 'ALT7'),
+    bypassMode: store.get('bypassMode', 'general'),
     autostart: store.get('autostart', false),
     minimizeToTray: store.get('minimizeToTray', true),
-    robloxProfile: store.get('robloxProfile', null)
+    robloxProfile: store.get('robloxProfile', null),
+    tutorialCompleted: store.get('tutorialCompleted', false)
   };
 });
 
@@ -728,7 +737,7 @@ ipcMain.handle('get-network-status', async () => {
   return {
     running: isRunning,
     available: checkBypassFiles(),
-    mode: store.get('bypassMode', 'ALT7')
+    mode: store.get('bypassMode', 'general')
   };
 });
 
@@ -742,7 +751,7 @@ ipcMain.handle('get-bypass-status', async () => {
   return {
     running: isRunning,
     available: checkBypassFiles(),
-    mode: store.get('bypassMode', 'ALT7')
+    mode: store.get('bypassMode', 'general')
   };
 });
 
@@ -809,7 +818,7 @@ ipcMain.handle('detect-provider', async () => {
     console.error('Provider detection failed:', error);
     return {
       provider: 'default',
-      mode: 'ALT7',
+      mode: 'general',
       autoDetected: false,
       error: error.message
     };
@@ -820,7 +829,7 @@ ipcMain.handle('detect-provider', async () => {
 ipcMain.handle('get-detected-provider', () => {
   return {
     provider: store.get('detectedProvider', null),
-    mode: store.get('bypassMode', 'ALT7'),
+    mode: store.get('bypassMode', 'general'),
     detected: store.get('providerDetected', false)
   };
 });

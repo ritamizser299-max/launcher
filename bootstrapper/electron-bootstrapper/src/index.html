@@ -21,7 +21,7 @@
 
     .container {
       width: 450px;
-      height: 300px;
+      height: 340px;
       background: linear-gradient(135deg, #0a0b0f 0%, #1a1b2e 50%, #0a0b0f 100%);
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.1);
@@ -56,7 +56,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
     }
 
     .logo {
@@ -120,6 +120,75 @@
       100% { transform: translateX(400%); }
     }
 
+    /* Path selection */
+    .path-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .path-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .path-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .path-display {
+      -webkit-app-region: no-drag;
+      flex: 1;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+      font-family: 'Consolas', monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .path-btn {
+      -webkit-app-region: no-drag;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.8);
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .path-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(168,85,247,0.5);
+    }
+
+    .path-btn.reset {
+      padding: 8px;
+      font-size: 14px;
+      opacity: 0.6;
+    }
+
+    .path-btn.reset:hover {
+      opacity: 1;
+    }
+
+    .path-btn.reset.hidden {
+      display: none;
+    }
+
     /* Error state */
     .error-container {
       display: none;
@@ -133,7 +202,8 @@
     }
 
     .content.has-error .progress-container,
-    .content.has-error .status {
+    .content.has-error .status,
+    .content.has-error .path-section {
       display: none;
     }
 
@@ -220,6 +290,15 @@
       
       <div class="status" id="status">Запуск...</div>
       
+      <div class="path-section" id="pathSection">
+        <div class="path-label">Путь установки:</div>
+        <div class="path-row">
+          <div class="path-display" id="pathDisplay">Загрузка...</div>
+          <button class="path-btn" id="selectPathBtn">Изменить</button>
+          <button class="path-btn reset hidden" id="resetPathBtn" title="Сбросить">↺</button>
+        </div>
+      </div>
+      
       <div class="progress-container">
         <div class="progress-bar">
           <div class="progress-fill loading" id="progressFill"></div>
@@ -244,6 +323,44 @@
     const errorMessage = document.getElementById('errorMessage');
     const retryBtn = document.getElementById('retryBtn');
     const closeBtn = document.getElementById('closeBtn');
+    const pathDisplay = document.getElementById('pathDisplay');
+    const selectPathBtn = document.getElementById('selectPathBtn');
+    const resetPathBtn = document.getElementById('resetPathBtn');
+    const pathSection = document.getElementById('pathSection');
+
+    // Load current install path
+    async function loadInstallPath() {
+      try {
+        const result = await window.bootstrapper.getInstallPath();
+        pathDisplay.textContent = result.path;
+        if (result.isCustom) {
+          resetPathBtn.classList.remove('hidden');
+        } else {
+          resetPathBtn.classList.add('hidden');
+        }
+      } catch (e) {
+        pathDisplay.textContent = 'Не удалось загрузить путь';
+      }
+    }
+    
+    // Initial load
+    loadInstallPath();
+
+    // Select custom path
+    selectPathBtn.addEventListener('click', async () => {
+      const result = await window.bootstrapper.selectInstallPath();
+      if (result.success) {
+        pathDisplay.textContent = result.path;
+        resetPathBtn.classList.remove('hidden');
+      }
+    });
+
+    // Reset to default path
+    resetPathBtn.addEventListener('click', async () => {
+      const result = await window.bootstrapper.resetInstallPath();
+      pathDisplay.textContent = result.path;
+      resetPathBtn.classList.add('hidden');
+    });
 
     // Listen for status updates from main process
     window.bootstrapper.onStatus((data) => {
@@ -251,6 +368,11 @@
         statusEl.textContent = data.message;
         content.classList.remove('has-error');
         errorContainer.classList.remove('show');
+        
+        // Hide path section during active download
+        if (data.progress !== null && data.progress > 0) {
+          pathSection.style.display = 'none';
+        }
         
         if (data.progress !== null) {
           progressFill.classList.remove('loading');
@@ -272,6 +394,8 @@
       errorContainer.classList.remove('show');
       progressFill.classList.add('loading');
       statusEl.textContent = 'Повторная попытка...';
+      pathSection.style.display = 'flex';
+      loadInstallPath();
       window.bootstrapper.retry();
     });
 

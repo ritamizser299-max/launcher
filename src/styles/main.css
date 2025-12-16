@@ -814,6 +814,17 @@ body {
   border: 1px solid var(--border);
 }
 
+/* Settings page card - slightly darker for better readability */
+#page-settings .card {
+  background: rgba(5, 5, 12, 0.55);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+[data-theme='light'] #page-settings .card {
+  background: rgba(255, 255, 255, 0.55);
+}
+
 .card h3 {
   margin: 0 0 8px 0;
   color: var(--accent);
@@ -1954,32 +1965,76 @@ select:focus, input[type="text"]:focus {
 .tutorial-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .tutorial-spotlight {
   position: absolute;
   border-radius: var(--radius);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  /* Create a clear "window" through the dark overlay */
+  background: transparent;
+  box-shadow:
+    0 0 0 4px var(--green),
+    0 0 20px var(--green-glow),
+    0 0 0 9999px rgba(0, 0, 0, 0.7);
   pointer-events: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1;
+  z-index: 15001;
+}
+
+/* Target element highlight - will be set via JS */
+.tutorial-target-highlight {
+  position: relative;
+  z-index: 15002 !important;
+  filter: none !important;
 }
 
 .tutorial-arrow {
   position: absolute;
   color: var(--green);
   filter: drop-shadow(0 0 8px var(--green-glow));
-  animation: tutorialArrowBounce 2s ease-in-out infinite;
-  z-index: 2;
+  z-index: 15003;
   pointer-events: none;
+  transition: all 0.3s ease;
 }
 
-@keyframes tutorialArrowBounce {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(10px) rotate(0deg); }
+/* Arrow animations based on direction */
+.tutorial-arrow.arrow-up {
+  animation: tutorialArrowUp 1.5s ease-in-out infinite;
+}
+
+.tutorial-arrow.arrow-down {
+  animation: tutorialArrowDown 1.5s ease-in-out infinite;
+}
+
+.tutorial-arrow.arrow-left {
+  animation: tutorialArrowLeft 1.5s ease-in-out infinite;
+}
+
+.tutorial-arrow.arrow-right {
+  animation: tutorialArrowRight 1.5s ease-in-out infinite;
+}
+
+@keyframes tutorialArrowUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes tutorialArrowDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+@keyframes tutorialArrowLeft {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-8px); }
+}
+
+@keyframes tutorialArrowRight {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(8px); }
 }
 
 .tutorial-tooltip {
@@ -1993,7 +2048,7 @@ select:focus, input[type="text"]:focus {
   padding: 20px;
   min-width: 320px;
   max-width: 400px;
-  z-index: 3;
+  z-index: 15004;
   animation: tutorialTooltipSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

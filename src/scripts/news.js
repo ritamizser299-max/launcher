@@ -1,35 +1,56 @@
 /**
  * News Service Module
- * Fetches news from GitHub Gist and manages caching
+ * Fetches news from RobBob API and manages caching
  */
 
 const NewsService = {
-  // Configure your GitHub Gist URL here
-  // Format: https://gist.githubusercontent.com/USERNAME/GIST_ID/raw/news.json
-  GIST_URL: 'https://gist.githubusercontent.com/yamineki/GIST_ID_HERE/raw/news.json',
+  // Main API URL (admin-panel managed)
+  API_URL: 'https://robbob.ru/api/news',
+  
+  // Fallback to GitHub Gist if API is unavailable
+  FALLBACK_GIST_URL: 'https://gist.githubusercontent.com/yamineki/GIST_ID_HERE/raw/news.json',
   
   CACHE_KEY: 'robbob_cached_news',
   LAST_SEEN_KEY: 'robbob_last_seen_news',
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
   
   /**
-   * Fetch news from GitHub Gist with caching
+   * Fetch news from RobBob API with fallback
    */
   async fetchNews() {
     try {
-      // Add timestamp to bypass cache
-      const url = this.GIST_URL + '?t=' + Date.now();
-      const response = await fetch(url);
+      // Try main API first
+      const url = this.API_URL + '?t=' + Date.now();
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch news');
+        throw new Error('API returned ' + response.status);
       }
       
       const data = await response.json();
       this.cacheNews(data);
       return data.news || [];
-    } catch (err) {
-      console.error('Error fetching news:', err);
+    } catch (apiErr) {
+      console.warn('API fetch failed, trying fallback:', apiErr.message);
+      
+      // Try fallback Gist
+      try {
+        const fallbackUrl = this.FALLBACK_GIST_URL + '?t=' + Date.now();
+        const fallbackResponse = await fetch(fallbackUrl);
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          this.cacheNews(fallbackData);
+          return fallbackData.news || [];
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback also failed:', fallbackErr.message);
+      }
+      
       // Return cached news on error
       return this.getCachedNews();
     }

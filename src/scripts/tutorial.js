@@ -6,27 +6,30 @@
 const Tutorial = {
   currentStep: 0,
   isActive: false,
+  currentTarget: null,
   
+  // Направление стрелки указывает куда СМОТРЕТЬ (на target)
+  // position: где находится tooltip относительно target
   steps: [
     {
       target: '#openLogin',
       text: 'Вы можете войти в свой аккаунт Roblox для быстрого доступа к профилю',
-      arrow: 'top-right'
+      position: 'bottom-left' // tooltip снизу-слева от кнопки
     },
     {
       target: '#playBtn',
-      text: 'Это поможет вам зайти в роблокс!',
-      arrow: 'top'
+      text: 'Нажмите, чтобы запустить Roblox!',
+      position: 'bottom' // tooltip снизу от кнопки
     },
     {
       target: '[data-page="page-settings"]',
       text: 'Поменяйте метод соединения, если у вас не работает!',
-      arrow: 'left'
+      position: 'right' // tooltip справа от кнопки (в sidebar)
     },
     {
       target: '[data-page="page-news"]',
       text: 'Различные новости о лаунчере! :3',
-      arrow: 'left'
+      position: 'right' // tooltip справа от кнопки (в sidebar)
     }
   ],
 
@@ -38,16 +41,16 @@ const Tutorial = {
     closeBtn: null
   },
 
-  async init() {
-    // Проверяем, завершен ли tutorial
-    if (window.electronAPI) {
-      const settings = await window.electronAPI.getSettings();
-      if (settings.tutorialCompleted) {
-        return; // Уже прошли tutorial
-      }
-    }
+  // SVG пути для стрелок в разных направлениях
+  arrowPaths: {
+    up: 'M30 50 L30 15 M30 15 L20 25 M30 15 L40 25',      // Стрелка вверх
+    down: 'M30 10 L30 45 M30 45 L20 35 M30 45 L40 35',    // Стрелка вниз
+    left: 'M50 30 L15 30 M15 30 L25 20 M15 30 L25 40',    // Стрелка влево
+    right: 'M10 30 L45 30 M45 30 L35 20 M45 30 L35 40'    // Стрелка вправо
+  },
 
-    // Создаем элементы
+  async init() {
+    // Всегда создаем элементы (нужны для кнопки "Показать" в настройках)
     this.createElements();
     this.setupEventListeners();
   },
@@ -63,7 +66,7 @@ const Tutorial = {
       <div class="tutorial-backdrop"></div>
       <div class="tutorial-spotlight" id="tutorialSpotlight"></div>
       <svg class="tutorial-arrow" id="tutorialArrow" width="60" height="60" viewBox="0 0 60 60">
-        <path d="M30 10 L30 45 M30 45 L20 35 M30 45 L40 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M30 50 L30 15 M30 15 L20 25 M30 15 L40 25" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
       </svg>
       <div class="tutorial-tooltip" id="tutorialTooltip">
         <button class="tutorial-close" id="tutorialClose">✕</button>
@@ -159,6 +162,11 @@ const Tutorial = {
       return;
     }
 
+    // Убираем подсветку с предыдущего элемента
+    if (this.currentTarget) {
+      this.currentTarget.classList.remove('tutorial-target-highlight');
+    }
+
     const step = this.steps[index];
     const target = document.querySelector(step.target);
 
@@ -167,6 +175,10 @@ const Tutorial = {
       this.nextStep();
       return;
     }
+
+    // Добавляем подсветку на текущий элемент
+    target.classList.add('tutorial-target-highlight');
+    this.currentTarget = target;
 
     // Обновляем текст
     this.elements.text.textContent = step.text;
@@ -183,6 +195,21 @@ const Tutorial = {
     this.updatePositions();
   },
 
+  // Обновить SVG стрелки для указанного направления
+  updateArrowDirection(direction) {
+    const arrow = this.elements.arrow;
+    const path = arrow.querySelector('path');
+    
+    // Убираем все классы анимации
+    arrow.classList.remove('arrow-up', 'arrow-down', 'arrow-left', 'arrow-right');
+    
+    // Устанавливаем путь и класс анимации
+    if (this.arrowPaths[direction]) {
+      path.setAttribute('d', this.arrowPaths[direction]);
+      arrow.classList.add('arrow-' + direction);
+    }
+  },
+
   updatePositions() {
     const step = this.steps[this.currentStep];
     const target = document.querySelector(step.target);
@@ -191,51 +218,63 @@ const Tutorial = {
 
     const rect = target.getBoundingClientRect();
 
-    // Spotlight
+    // Spotlight - обрамляет целевой элемент
     const padding = 8;
     this.elements.spotlight.style.left = (rect.left - padding) + 'px';
     this.elements.spotlight.style.top = (rect.top - padding) + 'px';
     this.elements.spotlight.style.width = (rect.width + padding * 2) + 'px';
     this.elements.spotlight.style.height = (rect.height + padding * 2) + 'px';
 
-    // Arrow positioning based on direction
     const arrow = this.elements.arrow;
     const tooltip = this.elements.tooltip;
+    const arrowOffset = 15;  // Расстояние от target до стрелки
+    const tooltipOffset = 80; // Расстояние от target до tooltip
     
-    switch (step.arrow) {
-      case 'top':
+    // Позиционирование на основе положения tooltip относительно target
+    // Стрелка ВСЕГДА указывает НА target (от tooltip к target)
+    switch (step.position) {
+      case 'bottom': // Tooltip снизу от target, стрелка указывает ВВЕРХ
+        this.updateArrowDirection('up');
         arrow.style.left = (rect.left + rect.width / 2 - 30) + 'px';
-        arrow.style.top = (rect.bottom + 20) + 'px';
-        arrow.style.transform = 'rotate(0deg)';
+        arrow.style.top = (rect.bottom + arrowOffset) + 'px';
         
         tooltip.style.left = (rect.left + rect.width / 2 - 160) + 'px';
-        tooltip.style.top = (rect.bottom + 90) + 'px';
+        tooltip.style.top = (rect.bottom + tooltipOffset) + 'px';
         break;
         
-      case 'top-right':
-        arrow.style.left = (rect.right - 40) + 'px';
-        arrow.style.top = (rect.bottom + 20) + 'px';
-        arrow.style.transform = 'rotate(-45deg)';
+      case 'bottom-left': // Tooltip снизу-слева, стрелка указывает ВВЕРХ-ВПРАВО
+        this.updateArrowDirection('up');
+        arrow.style.left = (rect.left + rect.width / 2 - 30) + 'px';
+        arrow.style.top = (rect.bottom + arrowOffset) + 'px';
         
-        tooltip.style.left = (rect.right - 300) + 'px';
-        tooltip.style.top = (rect.bottom + 90) + 'px';
+        tooltip.style.left = Math.max(20, rect.left - 100) + 'px';
+        tooltip.style.top = (rect.bottom + tooltipOffset) + 'px';
         break;
         
-      case 'left':
-        arrow.style.left = (rect.right + 20) + 'px';
+      case 'top': // Tooltip сверху от target, стрелка указывает ВНИЗ
+        this.updateArrowDirection('down');
+        arrow.style.left = (rect.left + rect.width / 2 - 30) + 'px';
+        arrow.style.top = (rect.top - 60 - arrowOffset) + 'px';
+        
+        tooltip.style.left = (rect.left + rect.width / 2 - 160) + 'px';
+        tooltip.style.top = (rect.top - tooltipOffset - 100) + 'px';
+        break;
+        
+      case 'right': // Tooltip справа от target, стрелка указывает ВЛЕВО
+        this.updateArrowDirection('left');
+        arrow.style.left = (rect.right + arrowOffset) + 'px';
         arrow.style.top = (rect.top + rect.height / 2 - 30) + 'px';
-        arrow.style.transform = 'rotate(90deg)';
         
-        tooltip.style.left = (rect.right + 90) + 'px';
+        tooltip.style.left = (rect.right + tooltipOffset) + 'px';
         tooltip.style.top = (rect.top + rect.height / 2 - 60) + 'px';
         break;
         
-      case 'right':
-        arrow.style.left = (rect.left - 70) + 'px';
+      case 'left': // Tooltip слева от target, стрелка указывает ВПРАВО
+        this.updateArrowDirection('right');
+        arrow.style.left = (rect.left - 60 - arrowOffset) + 'px';
         arrow.style.top = (rect.top + rect.height / 2 - 30) + 'px';
-        arrow.style.transform = 'rotate(-90deg)';
         
-        tooltip.style.left = (rect.left - 340) + 'px';
+        tooltip.style.left = (rect.left - tooltipOffset - 320) + 'px';
         tooltip.style.top = (rect.top + rect.height / 2 - 60) + 'px';
         break;
     }
@@ -269,6 +308,12 @@ const Tutorial = {
     this.isActive = false;
     this.elements.overlay.classList.remove('active');
     
+    // Убираем подсветку с текущего элемента
+    if (this.currentTarget) {
+      this.currentTarget.classList.remove('tutorial-target-highlight');
+      this.currentTarget = null;
+    }
+    
     setTimeout(() => {
       this.elements.overlay.style.display = 'none';
     }, 300);
@@ -288,11 +333,17 @@ const Tutorial = {
     this.isActive = false;
     this.elements.overlay.classList.remove('active');
     
+    // Убираем подсветку с текущего элемента
+    if (this.currentTarget) {
+      this.currentTarget.classList.remove('tutorial-target-highlight');
+      this.currentTarget = null;
+    }
+    
     setTimeout(() => {
       this.elements.overlay.style.display = 'none';
     }, 300);
   }
 };
 
-// Инициализация при загрузке
+// Инициализация элементов при загрузке (не запускает tutorial автоматически)
 document.addEventListener('DOMContentLoaded', () => Tutorial.init());

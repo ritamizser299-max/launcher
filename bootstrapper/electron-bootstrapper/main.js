@@ -1,13 +1,13 @@
 /**
  * RobBob Bootstrapper - Minimal Launcher
- * 
+ *
  * This small app:
  * 1. Checks if RobBob is installed locally
  * 2. Downloads/updates RobBob files from server
- * 3. Runs the main RobBob application
+ * 3. Runs the main RobBob application with admin rights
  */
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -32,9 +32,18 @@ const CONFIG = {
 
 let mainWindow;
 let isDownloading = false;
+let customInstallPath = null; // User-selected custom install path
 
-// Get paths
+// Get paths - uses custom path if set, otherwise default AppData
 function getAppDataPath() {
+  if (customInstallPath) {
+    return path.join(customInstallPath, CONFIG.appFolder);
+  }
+  return path.join(app.getPath('userData'), '..', CONFIG.appFolder);
+}
+
+// Get default install path for display
+function getDefaultInstallPath() {
   return path.join(app.getPath('userData'), '..', CONFIG.appFolder);
 }
 
@@ -50,7 +59,7 @@ function getAppExecutablePath() {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 450,
-    height: 300,
+    height: 340,
     frame: false,
     transparent: true,
     resizable: false,
@@ -175,19 +184,24 @@ function extractZip(zipPath, destPath) {
   });
 }
 
-// Create desktop shortcut
-function createDesktopShortcut(exePath) {
+// Create desktop shortcut to BOOTSTRAPPER (not the main app)
+// This ensures users always get update checks when launching
+function createDesktopShortcut() {
   return new Promise((resolve, reject) => {
     const desktopPath = path.join(require('os').homedir(), 'Desktop');
     const shortcutPath = path.join(desktopPath, 'RobBob Launcher.lnk');
     
-    // PowerShell command to create shortcut
+    // Get path to the bootstrapper itself (current executable)
+    const bootstrapperPath = app.getPath('exe');
+    const bootstrapperDir = path.dirname(bootstrapperPath);
+    
+    // PowerShell command to create shortcut pointing to BOOTSTRAPPER
     const psCommand = `
       $WshShell = New-Object -comObject WScript.Shell;
       $Shortcut = $WshShell.CreateShortcut('${shortcutPath}');
-      $Shortcut.TargetPath = '${exePath}';
-      $Shortcut.WorkingDirectory = '${path.dirname(exePath)}';
-      $Shortcut.Description = 'RobBob Launcher - Оптимизация сетевого соединения для Roblox';
+      $Shortcut.TargetPath = '${bootstrapperPath}';
+      $Shortcut.WorkingDirectory = '${bootstrapperDir}';
+      $Shortcut.Description = 'RobBob Launcher - Всегда актуальная версия';
       $Shortcut.Save()
     `.replace(/\n/g, ' ');
     
@@ -197,7 +211,7 @@ function createDesktopShortcut(exePath) {
         // Don't fail the whole process if shortcut creation fails
         resolve();
       } else {
-        console.log('Desktop shortcut created successfully');
+        console.log('Desktop shortcut created successfully (pointing to bootstrapper)');
         resolve();
       }
     });
@@ -234,7 +248,7 @@ function isAppInstalled() {
   return fs.existsSync(getAppExecutablePath());
 }
 
-// Run the main app
+// Run the main app WITH ADMIN RIGHTS
 function runApp() {
   const exePath = getAppExecutablePath();
   
@@ -243,13 +257,18 @@ function runApp() {
     return;
   }
   
-  sendStatus('status', 'Запуск...');
+  sendStatus('status', 'Запуск с правами администратора...');
   
-  // Spawn the app and exit bootstrapper
-  const child = spawn(exePath, [], {
+  // Launch with admin rights using PowerShell Start-Process -Verb RunAs
+  // This will trigger UAC prompt if needed
+  const child = spawn('powershell.exe', [
+    '-NoProfile',
+    '-Command',
+    `Start-Process -FilePath "${exePath}" -ArgumentList "--elevated" -Verb RunAs -WorkingDirectory "${getAppDataPath()}"`
+  ], {
     detached: true,
     stdio: 'ignore',
-    cwd: getAppDataPath()
+    windowsHide: true
   });
   
   child.unref();
@@ -257,7 +276,7 @@ function runApp() {
   // Close bootstrapper after short delay
   setTimeout(() => {
     app.quit();
-  }, 500);
+  }, 1000);
 }
 
 // Send status to renderer
@@ -318,9 +337,9 @@ async function bootstrap() {
         saveLocalVersion(serverVersion);
       }
       
-      // Create desktop shortcut
+      // Create desktop shortcut (points to bootstrapper for auto-updates)
       sendStatus('status', 'Создание ярлыка...', 100);
-      await createDesktopShortcut(getAppExecutablePath());
+      await createDesktopShortcut();
       
       isDownloading = false;
     }
@@ -338,6 +357,46 @@ async function bootstrap() {
 // IPC handlers
 ipcMain.handle('retry', () => {
   bootstrap();
+});
+
+// Get current install path
+ipcMain.handle('get-install-path', () => {
+  return {
+    path: getAppDataPath(),
+    isCustom: customInstallPath !== null
+  };
+});
+
+// Get default install path
+ipcMain.handle('get-default-path', () => {
+  return getDefaultInstallPath();
+});
+
+// Select custom install path
+ipcMain.handle('select-install-path', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Выберите папку для установки',
+    defaultPath: customInstallPath || getDefaultInstallPath(),
+    properties: ['openDirectory', 'createDirectory'],
+    buttonLabel: 'Выбрать'
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    customInstallPath = result.filePaths[0];
+    return {
+      success: true,
+      path: path.join(customInstallPath, CONFIG.appFolder)
+    };
+  }
+  return { success: false };
+});
+
+// Reset to default path
+ipcMain.handle('reset-install-path', () => {
+  customInstallPath = null;
+  return {
+    path: getAppDataPath()
+  };
 });
 
 ipcMain.on('window-close', () => {
